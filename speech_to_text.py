@@ -23,12 +23,15 @@ class SpeechToTextConverter:
         :return: текст, распознанный голосом
         """
         with self.mic as source:
-            self.r.adjust_for_ambient_noise(source, duration=0.5)
-            # print("Слушаю...")
+            self.r.energy_threshold = 15000
+            self.r.adjust_for_ambient_noise(source, duration=.5)
+            print("Слушаю...")
             audio = self.r.listen(source)
             try:
-                return self.r.recognize_google(audio, language=self.language)
+                text_recognition = self.r.recognize_google(audio, language=self.language)
+                return text_recognition
             except sr.UnknownValueError as exc:
                 print(f'Распознание речи не удалось {exc}')
             except sr.RequestError as exc:
                 print(f'Не удалось запросить результаты от службы распознавания речи Google. {exc}')
+            return None
