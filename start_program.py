@@ -12,7 +12,8 @@ class Starter:
 
     def __init__(
             self, model='gpt-4o', microphone_id=0, language='ru', rate=180, volume=0.8, voice_id=6,
-            answer_filename='answer_gpt.mp3', stop_word='остановись', trigger_words=('Bobby', 'Бобби')
+            answer_filename='answer_gpt.mp3', stop_word='остановись', trigger_words=('Bobby', 'Бобби'),
+            exit_program='выход'
     ):
         """
         Инициализация всех компонентов системы собеседника
@@ -25,6 +26,7 @@ class Starter:
         :param answer_filename: Имя файла в который будет сохранен ответ
         :param stop_word: Слово, которое признано остановочным для остановки озвучивания
         :param trigger_words: Слова, которые будут указывать что это запрос к gpt
+        :param exit_program: Слово, которое указывает на выход из программы
         """
         self.model = model
         self.microphone_id = microphone_id
@@ -32,6 +34,7 @@ class Starter:
         self.answer_filename = answer_filename
         self.stop_word = stop_word
         self.trigger_words = trigger_words
+        self.exit_program = exit_program
         self.gpt_client = GPTClient(self.model)
         self.speech_to_text_converter = SpeechToTextConverter(self.microphone_id, self.language)
         self.voice_answer = VoiceAnswer(rate, volume, voice_id, self.answer_filename)
@@ -53,7 +56,6 @@ class Starter:
         :param question: Текст запроса
         """
         if answer := self.gpt_client.get_response(self.clear_request(question)):
-            print(answer)
             self.voice_answer.save_answer_file(answer)
         self.place_voice = self.voice_answer.play_file_answer()
 
@@ -74,7 +76,7 @@ class Starter:
             if question := self.speech_to_text_converter.recognize_speech():
                 if any(trigger in question for trigger in self.trigger_words):
                     self.play_sound(question)
-                elif question == 'выход':
+                elif question == self.exit_program:
                     break
                 self.stop_sound(question)
 
