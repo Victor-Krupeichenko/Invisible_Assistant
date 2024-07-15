@@ -9,20 +9,18 @@ from asyncio import WindowsSelectorEventLoopPolicy
 
 class GPTClient:
     """
-    Класс для работы с GPT
+    Класс для работы с GPT API
     """
 
-    def __init__(self, question, model='gpt-4o'):
+    def __init__(self, model='gpt-4o'):
         """
         Инициализация GPT-клиента
-        :param question: вопрос для GPT
         :param model: модель GPT, используемая в качестве распознавателя
         """
-        self.question = question
         self.model = model
         self.client = Client()
 
-    def get_response(self):
+    def get_response(self, question):
         """
         Получение текстового ответа от GPT
         :return: текстовое сообщение
@@ -31,8 +29,7 @@ class GPTClient:
             asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{'role': 'user', 'content': f'{self.question}  (ответ пиши на русском языке)'}],
-
+                messages=[{'role': 'user', 'content': f'{question}  (ответ пиши на русском языке)'}],
             )
             return response.choices[0].message.content.replace('\n\n', '\n')
         except (RetryProviderError, Exception) as exc:
