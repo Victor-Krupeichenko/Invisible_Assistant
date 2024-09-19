@@ -17,6 +17,7 @@ class VoiceAnswer:
         :param vol: Громкость голоса
         :param v_id: ID голоса
         """
+
         self.rate = voice_rate
         self.volume = vol
         self.voice_id = v_id
@@ -40,6 +41,7 @@ class VoiceAnswer:
         Озвучивание текста
         :param talk_message: Текст для озвучивания
         """
+
         self.engine.say(talk_message)
         try:
             self.engine.runAndWait()
@@ -51,6 +53,7 @@ class VoiceAnswer:
         Воспроизведение файла с ответом от gpt
         :return объект simpleaudio с помощью которого можно управлять воспроизведением этого файла
         """
+
         if os.path.exists(self.answer_filename):
             audio = AudioSegment.from_file(self.answer_filename)
             play_obj = simpleaudio.play_buffer(audio.raw_data,
