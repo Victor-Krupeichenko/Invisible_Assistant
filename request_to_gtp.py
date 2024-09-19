@@ -2,22 +2,20 @@ import asyncio
 from g4f.client import Client
 from g4f.errors import RetryProviderError
 from asyncio import WindowsSelectorEventLoopPolicy
+from settings_env import model
 
-
-# gpt-4o
-# gpt-3.5-turbo
 
 class GPTClient:
     """
     Класс для работы с GPT API
     """
 
-    def __init__(self, model='gpt-4o'):
+    def __init__(self, model_gpt=model):
         """
         Инициализация GPT-клиента
-        :param model: модель GPT, используемая в качестве распознавателя
+        :param model_gpt: модель GPT, используемая в качестве распознавателя
         """
-        self.model = model
+        self.model = model_gpt
         self.client = Client()
 
     def get_response(self, question):
