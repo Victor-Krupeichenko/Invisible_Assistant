@@ -1,35 +1,31 @@
 import os
-import threading
 import pyttsx3
 import simpleaudio
 from pydub import AudioSegment
+from settings_env import rate, volume, voice_id, answer_filename
 
 
-# voice_id: 1, 3, 5, 6
 class VoiceAnswer:
     """
     Класс для озвучивания ответов с использованием голоса установленного в ОС Windows
     """
 
-    def __init__(self, rate=180, volume=0.8, voice_id=6, answer_filename='answer_gpt.mp3'):
+    def __init__(self, voice_rate=rate, vol=volume, v_id=voice_id, filename=answer_filename):
         """
         Инициализация голосового ответа
-        :param rate: Скорость голоса
-        :param volume: Громкость голоса
-        :param voice_id: ID голоса
+        :param voice_rate: Скорость голоса
+        :param vol: Громкость голоса
+        :param v_id: ID голоса
         """
-        self.rate = rate
-        self.volume = volume
-        self.voice_id = voice_id
+        self.rate = voice_rate
+        self.volume = vol
+        self.voice_id = v_id
         self.engine = pyttsx3.init()
         self.engine.setProperty('rate', self.rate)
         self.engine.setProperty('volume', self.volume)
         self.voices = list(self.engine.getProperty('voices'))
         self.engine.setProperty('voice', self.voices[self.voice_id].id)
-        self.stop_event = threading.Event()
-
-        self.answer_filename = answer_filename
-        # self.language = language
+        self.answer_filename = filename
 
     def save_answer_file(self, answer):
         """
@@ -38,6 +34,17 @@ class VoiceAnswer:
         """
         self.engine.save_to_file(text=answer, filename=self.answer_filename)
         self.engine.runAndWait()
+
+    def talk(self, talk_message):
+        """
+        Озвучивание текста
+        :param talk_message: Текст для озвучивания
+        """
+        self.engine.say(talk_message)
+        try:
+            self.engine.runAndWait()
+        except RuntimeError:
+            pass
 
     def play_file_answer(self):
         """
