@@ -1,8 +1,14 @@
 import re
 import os
+import threading
 from request_to_gtp import GPTClient
 from speech_to_text import SpeechToTextConverter
 from voice_answer import VoiceAnswer
+from settings_env import (
+    model, mic_id, language, rate, volume, voice_id, answer_filename, stop_word, trigger_words, exit_program,
+    talk_message, hello, exit_message, icon_tray, time_out
+)
+from system_tray import IconTray
 
 
 class Starter:
@@ -11,34 +17,41 @@ class Starter:
     """
 
     def __init__(
-            self, model='gpt-4o', microphone_id=0, language='ru', rate=180, volume=0.8, voice_id=6,
-            answer_filename='answer_gpt.mp3', stop_word='остановись', trigger_words=('Bobby', 'Бобби'),
-            exit_program='выход'
+            self, model_gpt=model, microphone_id=mic_id, lang=language, voice_rate=rate, vol=volume,
+            v_id=voice_id, filename=answer_filename, st_word=stop_word, trg_words=trigger_words,
+            exit_prog=exit_program, t_message=talk_message, icon=icon_tray, timeout=time_out
     ):
         """
         Инициализация всех компонентов системы собеседника
-        :param model: модель GPT, используемая в качестве распознавателя
+        :param model_gpt: модель GPT, используемая в качестве распознавателя
         :param microphone_id: ID микрофона, из которого будем получать аудио
-        :param language: Язык на котором будет производиться распознание речи и сохранения файла
-        :param rate: Скорость голоса
-        :param volume: Громкость голоса
-        :param voice_id: ID голоса из ОС Windows
-        :param answer_filename: Имя файла в который будет сохранен ответ
-        :param stop_word: Слово, которое признано остановочным для остановки озвучивания
-        :param trigger_words: Слова, которые будут указывать что это запрос к gpt
-        :param exit_program: Слово, которое указывает на выход из программы
+        :param lang: Язык на котором будет производиться распознание речи и сохранения файла
+        :param voice_rate: Скорость голоса
+        :param vol: Громкость голоса
+        :param v_id: ID голоса из ОС Windows
+        :param filename: Имя файла в который будет сохранен ответ
+        :param st_word: Слово, которое признано остановочным для остановки озвучивания
+        :param trg_words: Слова, которые будут указывать что это запрос к gpt
+        :param exit_prog: Слово, которое указывает на выход из программы
+        :param t_message: Сообщение, которое будет выводиться при запуске поиска ответа gpt
+        :param icon: PNG файл для иконки в трее
+        :param timeout: Время в секундах ожидания начало фразы
         """
-        self.model = model
+        self.model = model_gpt
         self.microphone_id = microphone_id
-        self.language = language
-        self.answer_filename = answer_filename
-        self.stop_word = stop_word
-        self.trigger_words = trigger_words
-        self.exit_program = exit_program
+        self.language = lang
+        self.answer_filename = filename
+        self.stop_word = st_word
+        self.trigger_words = trg_words
+        self.exit_program = exit_prog
+        self.t_message = t_message
+        self.time_out = timeout  # Время в секундах ожидания начало фразы
         self.gpt_client = GPTClient(self.model)
         self.speech_to_text_converter = SpeechToTextConverter(self.microphone_id, self.language)
-        self.voice_answer = VoiceAnswer(rate, volume, voice_id, self.answer_filename)
-        self.place_voice = None
+        self.voice_answer = VoiceAnswer(voice_rate, vol, v_id, self.answer_filename)
+        self.icon_tray = IconTray(starter=self, icon=icon)
+        self.place_voice = None  # будет ссылаться на объект simpleaudio для управления аудио
+        self.exit_event = threading.Event()
 
     def clear_request(self, text):
         """
@@ -50,14 +63,24 @@ class Starter:
         cleaner_text = re.sub(pattern, '', text).strip()
         return cleaner_text
 
-    def play_sound(self, question):
+    @staticmethod
+    def check_filename(filename):
+        """
+        Проверяет существование звукового файла с ответом, если файл есть то его удаляет
+        :param filename: Имя файла
+        """
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    def play_sound(self, clear_question):
         """
         Запуск воспроизведения файла с ответом на запрос
-        :param question: Текст запроса
+        :param clear_question: Очищенный текст запроса
         """
-        if answer := self.gpt_client.get_response(self.clear_request(question)):
+        if answer := self.gpt_client.get_response(clear_question):
             self.voice_answer.save_answer_file(answer)
         self.place_voice = self.voice_answer.play_file_answer()
+        self.check_filename(self.answer_filename)
 
     def stop_sound(self, question):
         """
@@ -66,23 +89,47 @@ class Starter:
         """
         if question == self.stop_word:
             self.place_voice.stop()
-            os.remove(self.answer_filename)
+            self.check_filename(self.answer_filename)
+
+    def handle_user_request(self, question):
+        """
+        Обработка запроса пользователя
+        :param question: Текстовый запрос
+        """
+        clear_question = self.clear_request(question)
+        if clear_question.lower() == hello:  # hello - это ссылка на слово приветствие (изменить можно в файле .env)
+            self.play_sound(clear_question)
+        else:
+            self.voice_answer.talk(talk_message=self.t_message)
+            self.play_sound(clear_question)
+
+    def stop_program(self):
+        """
+        Метод для корректного завершения программы и освобождения ресурсов.
+        """
+        self.exit_event.set()  # Устанавливаю флаг в True
+        self.time_out = 0.1
+        if self.place_voice:
+            self.place_voice.stop()
+        self.voice_answer.talk(talk_message=exit_message)
 
     def main(self):
         """
-        Запуск системы собеседника
+        Запуск основного цикла работы собеседника
         """
-        while True:
-            if question := self.speech_to_text_converter.recognize_speech():
+        threading.Thread(target=self.icon_tray.create_icon_tray, daemon=True).start()  # запускаю иконку в трей
+        while not self.exit_event.is_set():
+            if question := self.speech_to_text_converter.recognize_speech(timeout=self.time_out):
                 if any(trigger in question for trigger in self.trigger_words):
-                    self.play_sound(question)
+                    self.handle_user_request(question)
                 elif question == self.exit_program:
-                    break
+                    self.exit_event.set()  # Установка флага для завершения программы
+                    self.voice_answer.talk(talk_message=exit_message)
+                    continue
                 self.stop_sound(question)
+        self.check_filename(self.answer_filename)
 
 
 if __name__ == '__main__':
-    # starter = Starter()
-    # starter = Starter(model='gpt-3.5-turbo', voice_id=1)
-    starter = Starter(model='gpt-3.5-turbo')
+    starter = Starter()
     starter.main()
