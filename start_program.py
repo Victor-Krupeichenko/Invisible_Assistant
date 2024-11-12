@@ -51,7 +51,7 @@ class Starter:
         self.voice_answer = VoiceAnswer(voice_rate, vol, v_id, self.answer_filename)
         self.icon_tray = IconTray(starter=self, icon=icon)
         self.place_voice = None  # будет ссылаться на объект simpleaudio для управления аудио
-        self.exit_event = threading.Event()
+        self.exit_event = threading.Event()  # Флаг 'unset' - для работы основного цикла программы
 
     def clear_request(self, text):
         """
@@ -87,7 +87,7 @@ class Starter:
         Остановка воспроизведения файла с ответом на запрос
         :param question: Текст запроса
         """
-        if question == self.stop_word:
+        if question == self.stop_word and self.place_voice:
             self.place_voice.stop()
             self.check_filename(self.answer_filename)
 
@@ -107,25 +107,23 @@ class Starter:
         """
         Метод для корректного завершения программы и освобождения ресурсов.
         """
-        self.exit_event.set()  # Устанавливаю флаг в True
-        self.time_out = 0.1
         if self.place_voice:
             self.place_voice.stop()
+        self.exit_event.set()  # устанавливаем флаг выполнения в 'set' - тем самым завершаем цикл выполнения программы
         self.voice_answer.talk(talk_message=exit_message)
 
     def main(self):
         """
-        Запуск основного цикла работы собеседника
+        Запуск основного цикла работы программы
         """
         threading.Thread(target=self.icon_tray.create_icon_tray, daemon=True).start()  # запускаю иконку в трей
-        while not self.exit_event.is_set():
+        while not self.exit_event.is_set():  # пока флаг 'unset'
             if question := self.speech_to_text_converter.recognize_speech(timeout=self.time_out):
                 if any(trigger in question for trigger in self.trigger_words):
                     self.handle_user_request(question)
                 elif question == self.exit_program:
-                    self.exit_event.set()  # Установка флага для завершения программы
-                    self.voice_answer.talk(talk_message=exit_message)
-                    continue
+                    self.stop_program()
+                    break
                 self.stop_sound(question)
         self.check_filename(self.answer_filename)
 
