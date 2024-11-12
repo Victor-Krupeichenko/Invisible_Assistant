@@ -27,8 +27,13 @@ class GPTClient:
             asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{'role': 'user', 'content': f'{question}  (ответ пиши на русском языке)'}],
+                messages=[{'role': 'user', 'content': f'{question}  (ответ пиши только на русском языке)'}],
+                # TODO добавить от какого лица писать (женского/мужского) в зависимости от выбранного голоса
             )
-            return response.choices[0].message.content.replace('\n\n', '\n')
+            clear_response = response.choices[0].message.content.replace('\n\n', '\n')
+            print(clear_response)
+            if 'BLACKBOX.AI' in clear_response or 'Model not found or too long input' in clear_response:
+                return 'Повторите запрос'
+            return clear_response
         except (RetryProviderError, Exception) as exc:
             return f'Ошибка запроса к gpt: {str(exc)}'
