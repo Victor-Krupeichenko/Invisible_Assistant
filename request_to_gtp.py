@@ -3,6 +3,7 @@ from g4f.client import Client
 from g4f.errors import RetryProviderError
 from asyncio import WindowsSelectorEventLoopPolicy
 from settings_env import model
+from settings_env import trigger_words
 
 
 class GPTClient:
@@ -23,15 +24,16 @@ class GPTClient:
         Получение текстового ответа от GPT
         :return: текстовое сообщение
         """
+        legend = "(ответ пиши только на русском языке) (ответ пиши от лица {} пола)"
+        question += legend.format("мужского" if trigger_words[-1] == "male" else "женского")
         try:
             asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{'role': 'user', 'content': f'{question}  (ответ пиши только на русском языке)'}],
-                # TODO добавить от какого лица писать (женского/мужского) в зависимости от выбранного голоса
+                messages=[{'role': 'user',
+                           'content': f'{question} {legend}'}],
             )
             clear_response = response.choices[0].message.content.replace('\n\n', '\n')
-            print(clear_response)
             if 'BLACKBOX.AI' in clear_response or 'Model not found or too long input' in clear_response:
                 return 'Повторите запрос'
             return clear_response
