@@ -1,3 +1,4 @@
+import sys
 import speech_recognition as sr
 from settings_env import mic_id, language
 
@@ -27,7 +28,8 @@ class SpeechToTextConverter:
         with self.mic as source:
             self.r.energy_threshold = 16000
             self.r.adjust_for_ambient_noise(source, 1.2)
-            print("Слушаю...")  # Выводим сообщение о начале слушания
+            sys.stdout.write(f"\rСлушаю...") # Выводим сообщение о начале прослушания
+            sys.stdout.flush()
             try:
                 audio = self.r.listen(source, timeout=timeout)
                 text_recognition = self.r.recognize_google(audio, language=self.language)
