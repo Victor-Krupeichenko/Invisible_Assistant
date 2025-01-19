@@ -19,7 +19,7 @@ class Starter:
     def __init__(
             self, model_gpt=model, microphone_id=mic_id, lang=language, voice_rate=rate, vol=volume,
             v_id=voice_id, filename=answer_filename, st_word=stop_word, trg_words=trigger_words,
-            exit_prog=exit_program, t_message=talk_message, icon=icon_tray, timeout=time_out
+            exit_prog=exit_program, t_message=talk_message, icon=icon_tray
     ):
         """
         Инициализация всех компонентов системы собеседника
@@ -35,7 +35,6 @@ class Starter:
         :param exit_prog: Слово, которое указывает на выход из программы
         :param t_message: Сообщение, которое будет выводиться при запуске поиска ответа gpt
         :param icon: PNG файл для иконки в трее
-        :param timeout: Время в секундах ожидания начало фразы
         """
         self.model = model_gpt
         self.microphone_id = microphone_id
@@ -45,7 +44,6 @@ class Starter:
         self.trigger_words = trg_words
         self.exit_program = exit_prog
         self.t_message = t_message
-        self.time_out = timeout  # Время в секундах ожидания начало фразы
         self.gpt_client = GPTClient(self.model)
         self.speech_to_text_converter = SpeechToTextConverter(self.microphone_id, self.language)
         self.voice_answer = VoiceAnswer(voice_rate, vol, v_id, self.answer_filename)
@@ -118,8 +116,8 @@ class Starter:
         """
         threading.Thread(target=self.icon_tray.create_icon_tray, daemon=True).start()  # запускаю иконку в трей
         while not self.exit_event.is_set():  # пока флаг 'unset'
-            if question := self.speech_to_text_converter.recognize_speech(timeout=self.time_out):
-                if any(trigger in question for trigger in self.trigger_words):
+            if question := self.speech_to_text_converter.recognize_speech(timeout=time_out):
+                if any(trigger in question for trigger in self.trigger_words[:-1]):
                     self.handle_user_request(question)
                 elif question == self.exit_program:
                     self.stop_program()
@@ -129,5 +127,4 @@ class Starter:
 
 
 if __name__ == '__main__':
-    starter = Starter()
-    starter.main()
+    Starter().main()
