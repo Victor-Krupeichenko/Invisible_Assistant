@@ -58,7 +58,7 @@ class Starter:
         :return: строку с очищенным запросом
         """
         pattern = fr'\b{self.trigger_words[0]}\b|\b{self.trigger_words[1]}\b'
-        cleaner_text = re.sub(pattern, '', text).strip()
+        cleaner_text = re.sub(pattern, '', text, flags=re.IGNORECASE).strip()
         return cleaner_text
 
     @staticmethod
