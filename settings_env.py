@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(dotenv_path='.env')
 
 model = os.getenv('MODEL')
 mic_id = int(os.getenv('MICROPHONE_ID'))
