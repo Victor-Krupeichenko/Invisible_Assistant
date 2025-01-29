@@ -1,6 +1,10 @@
+import ctypes
 import re
-import os
 import threading
+import time
+import win32con
+import win32gui
+from pathlib import Path
 from request_to_gtp import GPTClient
 from speech_to_text import SpeechToTextConverter
 from voice_answer import VoiceAnswer
@@ -67,8 +71,9 @@ class Starter:
         Проверяет существование звукового файла с ответом, если файл есть то его удаляет
         :param filename: Имя файла
         """
-        if os.path.exists(filename):
-            os.remove(filename)
+        file_path = Path(filename)
+        if file_path.is_file():
+            file_path.unlink()
 
     def play_sound(self, clear_question):
         """
@@ -115,6 +120,9 @@ class Starter:
         Запуск основного цикла работы программы
         """
         threading.Thread(target=self.icon_tray.create_icon_tray, daemon=True).start()  # запускаю иконку в трей
+        time.sleep(1)
+        hwnd = ctypes.windll.kernel32.GetConsoleWindow()  # получаем дескриптор консольного окна
+        win32gui.ShowWindow(hwnd, win32con.SW_HIDE)  # сворачиваем консольное окно
         while not self.exit_event.is_set():  # пока флаг 'unset'
             if question := self.speech_to_text_converter.recognize_speech(timeout=time_out):
                 if any(trigger in question for trigger in self.trigger_words[:-1]):
