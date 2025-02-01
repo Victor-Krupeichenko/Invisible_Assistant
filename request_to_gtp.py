@@ -24,14 +24,16 @@ class GPTClient:
         Получение текстового ответа от GPT
         :return: текстовое сообщение
         """
-        legend = "(ответ пиши только на русском языке) (ответ пиши от лица {} пола)"
-        question += legend.format("мужского" if trigger_words[-1] == "male" else "женского")
+        tmp = "(ответ пиши только на русском языке) (ответ пиши от лица {} пола) тебя зовут {}"
+        legend = tmp.format("мужского" if trigger_words[-1] == "male" else "женского", trigger_words[-2])
         try:
             asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{'role': 'user',
-                           'content': f'{question} {legend}'}],
+                messages=[
+                    {'role': 'system', 'content': legend},
+                    {'role': 'user', 'content': f'{question}'}
+                ],
             )
             clear_response = response.choices[0].message.content.replace('\n\n', '\n')
             if 'BLACKBOX.AI' in clear_response or 'Model not found or too long input' in clear_response:
