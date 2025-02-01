@@ -125,7 +125,7 @@ class Starter:
         win32gui.ShowWindow(hwnd, win32con.SW_HIDE)  # сворачиваем консольное окно
         while not self.exit_event.is_set():  # пока флаг 'unset'
             if question := self.speech_to_text_converter.recognize_speech(timeout=time_out):
-                if any(trigger in question for trigger in self.trigger_words[:-1]):
+                if any(trigger.lower() in question.lower() for trigger in self.trigger_words[:-1]):
                     self.handle_user_request(question)
                 elif question == self.exit_program:
                     self.stop_program()
