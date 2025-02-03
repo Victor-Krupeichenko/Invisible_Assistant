@@ -3,7 +3,7 @@
 компиляция с помощью (compilation using) nuitka: python -m nuitka --follow-imports --windows-uac-admin --windows-icon-from-ico=start.ico start_program.py
 
 Демонстрация (Demonstration):
-[![Video](https://img.youtube.com/vi/Ian5l38weKY/maxresdefault.jpg)](https://www.youtube.com/watch?v=NJOi4jdro1c&ab_channel=VictorKrupeichenko)
+[![Video](https://img.youtube.com/vi/NJOi4jdro1c/maxresdefault.jpg)](https://www.youtube.com/watch?v=NJOi4jdro1c&ab_channel=VictorKrupeichenko)
 
 ## Контакты:
 Виктор
